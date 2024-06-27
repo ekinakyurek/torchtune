@@ -38,12 +38,12 @@ model:
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir: /raid/lingo/models/Meta-Llama-3-8B-Instruct
+  checkpoint_dir: /raid/lingo/akyurek/git/arc/experiments/withcode_repr_v2/model_weights/
   checkpoint_files: [
-    model-00001-of-00004.safetensors,
-    model-00002-of-00004.safetensors,
-    model-00003-of-00004.safetensors,
-    model-00004-of-00004.safetensors
+    hf_model_0001_0.pt,
+    hf_model_0002_0.pt,
+    hf_model_0003_0.pt,
+    hf_model_0004_0.pt,
   ]
   recipe_checkpoint: # recipe_state.pt
   output_dir: /raid/lingo/akyurek/git/arc/experiments/withcode_repr_v2/model_weights/
