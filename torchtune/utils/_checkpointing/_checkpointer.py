@@ -679,6 +679,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         if self._resume_from_checkpoint:
             recipe_state = safe_torch_load(self._recipe_checkpoint, mmap=False)
             state_dict.update(recipe_state)
+
         return state_dict
 
     def save_checkpoint(
