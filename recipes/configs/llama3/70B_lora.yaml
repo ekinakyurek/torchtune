@@ -20,11 +20,11 @@ model:
 
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Meta-Llama-3-70B-Instruct/original/tokenizer.model
+  path: /raid/lingo/models/Meta-Llama-3-70B-Instruct/original/tokenizer.model
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir:  /tmp/Meta-Llama-3-70B-Instruct
+  checkpoint_dir: /raid/lingo/models/Meta-Llama-3-70B-Instruct/
   checkpoint_files: [
     model-00001-of-00030.safetensors,
     model-00002-of-00030.safetensors,
@@ -58,13 +58,17 @@ checkpointer:
     model-00030-of-00030.safetensors,
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Meta-Llama-3-70B-Instruct
+  output_dir: /raid/lingo/akyurek/git/arc/experiments/llama70b-new-data-large-desc-20/model_weights/
   model_type: LLAMA3
 resume_from_checkpoint: False
 
-# Dataset and Sampler
+# Dataset
 dataset:
-  _component_: torchtune.datasets.alpaca_dataset
+  _component_: torchtune.datasets.arc_dataset
+  source: /raid/lingo/akyurek/git/arc/data/tasks/N20_black_all/4llama/
+  train_on_input: False
+
+
 seed: null
 shuffle: True
 batch_size: 2
@@ -82,12 +86,12 @@ loss:
   _component_: torch.nn.CrossEntropyLoss
 
 # Training
-epochs: 1
+epochs: 3
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
 
 # Logging
-output_dir: /tmp/lora_finetune_output
+output_dir: /raid/lingo/akyurek/git/arc/experiments/llama70b-new-data-large-desc-20/logs/
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
