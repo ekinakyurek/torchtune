@@ -10,7 +10,7 @@ import torch
 from torchao.quantization.quant_api import (
     Int4WeightOnlyGPTQQuantizer,
     Int4WeightOnlyQuantizer,
-    quantize,
+    # quantize,
     Quantizer,
 )
 

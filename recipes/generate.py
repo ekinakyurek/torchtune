@@ -11,7 +11,7 @@ import os
 import random
 
 from functools import partial
-from typing import Any, Dict
+from typing import Any, Dict, Union, Optional, List
 
 from tqdm import tqdm
 
@@ -256,7 +256,8 @@ class InferenceRecipe:
         rng = np.random.default_rng(cfg.seed)
 
         for idx, batch in tqdm(enumerate(self._dataloader)):
-            input_ids, labels = batch
+            input_ids, labels = batch['tokens'], batch['labels']
+
             filename = self._ds._data["idx"][idx]
             # basename
             filename = os.path.basename(filename)
@@ -265,18 +266,14 @@ class InferenceRecipe:
 
             input_ids, labels = input_ids[0], labels[0]
 
-            prompt = [token.item() for token, label in zip(input_ids, labels) if label == -100]
+            # find assistnat token
+            target_start = torch.where(labels == 78191)[0][0]
 
-            target = [token.item() for token, label in zip(input_ids, labels) if label != -100]
+            prompt = input_ids[:target_start+3]
 
-            prompt = prompt[:-1] +  target[:3]
-
-            target = target[3:-1]
+            target = input_ids[target_start+3:-2]
 
             prompt_str = self._tokenizer.decode(prompt, truncate_at_eos=False)
-
-            print("Prompt: ", prompt_str)
-            breakpoint()
 
             target_str = self._tokenizer.decode(target, truncate_at_eos=False)
 
@@ -302,16 +299,14 @@ class InferenceRecipe:
                         max_generated_tokens=8150 - len(prompt),
                         temperature=cfg.temperature if iter != 0 else 0.0,
                         top_k=cfg.top_k,
-
                         stop_tokens=self._tokenizer.stop_tokens,
                         pad_id=self._tokenizer.pad_id,
                         custom_generate_next_token=custom_generate_next_token,
                     )
+                    generated_tokens = generated_tokens[0]
                 except:
                     generated_tokens = prompt
 
-                # print(self._tokenizer.decode(generated_tokens, truncate_at_eos=False))
-                # breakpoint()
 
 
                 generated_tokens = generated_tokens[len(prompt): len(prompt)+len(target)]
