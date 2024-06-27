@@ -3,8 +3,8 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-
 from typing import Callable, Optional
+
 
 # importing TORCH_VERSION_AFTER_2_3 because `Int8DynActInt4WeightQuantizer`
 # is only available after 2.3 so we have to guard the pytorch versions to decide
