@@ -524,8 +524,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 ):
                     break
 
-                if idx // self._gradient_accumulation_steps < 3379:
-                    continue
 
                 # Both are shape [b, s]
                 tokens, labels = batch["tokens"], batch["labels"]
@@ -592,7 +590,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     num_tokens = 0
                     t0 = time.perf_counter()
 
-                    if self.total_training_steps % 1000 == 0:
+                    if self.global_step % 1000 == 0:
                         self.save_checkpoint(epoch=curr_epoch)
 
             self.epochs_run += 1

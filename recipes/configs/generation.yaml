@@ -18,15 +18,15 @@ model:
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir: /raid/lingo/akyurek/git/arc/experiments/withcode/model_weights/
+  checkpoint_dir: /raid/lingo/akyurek/git/arc/weights/hf_model_last/
   checkpoint_files: [
-    hf_model_0001_0.pt,
-    hf_model_0002_0.pt,
-    hf_model_0003_0.pt,
-    hf_model_0004_0.pt,
+    pytorch_model-0001-of-0004.bin,
+    pytorch_model-0002-of-0004.bin,
+    pytorch_model-0003-of-0004.bin,
+    pytorch_model-0004-of-0004.bin,
   ]
   # adapter_checkpoint: adapter_0.pt
-  output_dir: /raid/lingo/akyurek/git/arc/experiments/withcode/inference/
+  output_dir: /raid/lingo/akyurek/git/arc/experiments/withcode_repr_v2/inference/
   model_type: LLAMA3
 
 
@@ -51,7 +51,7 @@ dtype: bf16
 
 seed: 1234
 
-output_path: /raid/lingo/akyurek/git/arc/experiments/withcode/results_epoch_0/
+output_path: /raid/lingo/akyurek/git/arc/experiments/withcode_repr_v2/results_epoch_0/
 
 # Tokenizer arguments
 tokenizer:
@@ -60,7 +60,7 @@ tokenizer:
 
 dataset:
   _component_: torchtune.datasets.arc_dataset
-  source: /raid/lingo/akyurek/git/arc/data/tasks/verifiers_N40_rand_transformation_black_all/
+  source: /raid/lingo/akyurek/git/arc/data/tasks/all_in_N40_rand_transformation_black_all
   train_on_input: False
   split: test
   unmask_outputs: True
