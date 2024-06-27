@@ -9,6 +9,15 @@ from typing import List, Optional
 from sentencepiece import SentencePieceProcessor
 from torchtune.modules.tokenizers._utils import BaseTokenizer
 
+
+# start and end header tokens for formatting chat messages
+START_HEADER_ID = "<start_of_turn>"
+END_HEADER_ID = "\n"
+EOT_ID = "<end_of_turn>"
+
+PAD_ID = -1
+
+
 WHITESPACE_CHARS = [" ", "\n", "\t", "\r", "\v"]
 
 
@@ -30,6 +39,9 @@ class SentencePieceBaseTokenizer(BaseTokenizer):
     def __init__(
         self,
         path: str,
+        start_header_id: str = START_HEADER_ID,
+        end_header_id :str = END_HEADER_ID,
+        eot_id: str = EOT_ID,
     ):
         spm_model = SentencePieceProcessor()
         spm_model.load(path)
@@ -39,8 +51,6 @@ class SentencePieceBaseTokenizer(BaseTokenizer):
         self.eos_id = spm_model.eos_id()
         self.pad_id = spm_model.pad_id()
 
-        # If the tokenizer does not encode whitespace,
-        # then we can more easily split strings
         # on whitespace characters and encode them separately.
         self.encodes_whitespace = any(
             [self.spm_model.encode(c) for c in WHITESPACE_CHARS]
@@ -99,7 +109,24 @@ class SentencePieceBaseTokenizer(BaseTokenizer):
                 out_type=int,
             )
 
-    def decode(self, ids: List[int]) -> str:
+    def encode_with_special_tokens(
+        self,
+        text: str,
+        add_bos: bool = True,
+        add_eos: bool = True,
+        trim_leading_whitespace: bool = False,
+        prefix: Optional[str] = None,
+    ) -> List[int]:
+
+        return self.encode(
+            text=text,
+            add_bos=add_bos,
+            add_eos=add_eos,
+            trim_leading_whitespace=trim_leading_whitespace,
+            prefix=prefix,
+        )
+
+    def decode(self, ids: List[int], truncate_at_eos: bool = True) -> str:
         """Decode token IDs to strings.
 
         Args:
@@ -108,4 +135,12 @@ class SentencePieceBaseTokenizer(BaseTokenizer):
         Returns:
             str: The decoded text.
         """
+        if truncate_at_eos:
+            try:
+                k = ids.index(self.eos_id)
+            except ValueError:
+                k = None
+            if k:
+                ids = ids[:k]
+
         return self.spm_model.decode(ids)

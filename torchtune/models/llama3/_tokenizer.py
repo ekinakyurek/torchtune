@@ -185,39 +185,52 @@ class Llama3Tokenizer(ModelTokenizer):
 
         return tokenized_body
 
+
     def tokenize_message(
-        self,
-        message: Message,
-        tokenize_header: bool = True,
-        tokenize_end: bool = True,
+        self, message: Message, tokenize_header: bool = False, chat_format: bool = True,
     ) -> List[int]:
         """
         Tokenize a message into a list of token ids.
 
         Args:
             message (Message): The message to tokenize.
-            tokenize_header (bool): Whether to prepend a tokenized header to the message.
-            tokenize_end (bool): Whether to append eot or eom id at the end of the message.
+            tokenize_header (bool): Whether to prepend a tokenized header to each message.
 
         Returns:
             List[int]: The list of token ids.
         """
-
-        tokenized_header = self._tokenize_header(message) if tokenize_header else []
-
-        tokenized_body = self._tokenize_body(message)
-
-        tokenized_end = self._tokenize_end(message) if tokenize_end else []
-
-        tokenized_message = tokenized_header + tokenized_body + tokenized_end
-
+        if chat_format and tokenize_header:
+            tokenized_header = (
+                [self.start_header_id]
+                + self.encode(message.role.strip(), add_bos=False, add_eos=False)
+                + [self.end_header_id]
+                + self.encode("\n\n", add_bos=False, add_eos=False)
+            )
+        else:
+            tokenized_header = []
+        tokenized_body = self.encode(
+            message.content.strip(), add_bos=False, add_eos=False
+        )
+        if chat_format:
+            if message.ipython:
+                tokenized_body = [self.python_tag] + tokenized_body
+            tokenized_message = tokenized_header + tokenized_body
+            if message.eot:
+                tokenized_message = tokenized_message + [self.eot_id]
+            else:
+                tokenized_message = tokenized_message + [self.eom_id]
+        else:
+            tokenized_message = tokenized_body
         return tokenized_message
 
     def tokenize_messages(
         self,
         messages: List[Message],
         max_seq_len: Optional[int] = None,
+        tokenize_header: bool = True,
         add_eos: bool = True,
+        unmask_outputs: bool = False,
+        chat_format: bool = True,
     ) -> Tuple[List[int], List[bool]]:
         """
         Tokenize a list of messages into a list of token ids and masks.
@@ -225,7 +238,7 @@ class Llama3Tokenizer(ModelTokenizer):
         Args:
             messages (List[Message]): The list of messages to tokenize.
             max_seq_len (Optional[int]): The maximum sequence length.
-            add_eos (bool): Wether to add the tokenizer's eos_id. Default True.
+            tokenize_header (bool): Whether to prepend a tokenized header to each message.
 
         Returns:
             Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
@@ -233,19 +246,39 @@ class Llama3Tokenizer(ModelTokenizer):
         tokens = [self.bos_id]
         # bos and eos are always masked
         mask = [True]
-        for message in messages:
-            tokenized_message = self.tokenize_message(message)
+        if not chat_format:
+            messages[0].content = "".join([message.content for message in messages])
+            messages = messages[:1]
 
+        for message in messages:
+            tokenized_message = self.tokenize_message(
+                message, tokenize_header=tokenize_header, chat_format=chat_format
+            )
             tokens = tokens + tokenized_message
-            mask = mask + ([message.masked] * len(tokenized_message))
+            if unmask_outputs and message.role == "system" and "code" not in message.content:
+                # we want to mask outputs after first example in the sequence
+                # find second all positions of -> token 1492
+                # fast find all 1492 in tokenized_message
+                all_sep_positions = [i for i, x in enumerate(tokenized_message) if x == 1492]
+                # find all ]]
+                all_close_positions = [i for i, x in enumerate(tokenized_message) if x == 5163 or x == 14623]
+                mask_for_system = [True] * len(tokenized_message)
+                count_step = 1 if (len(all_close_positions) / len(all_sep_positions)) >= 4 else 0
+                if len(all_sep_positions) > 1:
+                    for sep_position in all_sep_positions[1:]:
+                        # find the next close bracket
+                        close_position = [x for x in all_close_positions if x > sep_position][count_step]
+                        mask_for_system[sep_position+1:close_position+1] = [False] * (close_position - sep_position)
+                # mask positions 2 - 3
+                mask = mask + mask_for_system
+            else:
+                mask = mask + ([message.masked] * len(tokenized_message))
             if max_seq_len and len(tokens) >= max_seq_len:
                 break
-
         if add_eos:
             tokens = tokens + [self.eos_id]
             mask = mask + [True]
         if max_seq_len:
             tokens = truncate(tokens, max_seq_len, self.eos_id)
             mask = truncate(mask, max_seq_len, True)
-
         return tokens, mask

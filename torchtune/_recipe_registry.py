@@ -77,6 +77,14 @@ _ALL_RECIPES = [
         supports_distributed=True,
     ),
     Recipe(
+        name="full_finetune_distributed_w_quantization",
+        file_path="full_finetune_distributed_w_quantization.py",
+        configs=[
+            Config(name="llama3/70B_full", file_path="llama3/70B_full.yaml"),
+        ],
+        supports_distributed=True,
+    ),
+    Recipe(
         name="lora_finetune_single_device",
         file_path="lora_finetune_single_device.py",
         configs=[
