@@ -265,11 +265,12 @@ class InferenceRecipe:
             filename = filename.replace(".jsonl", "")
 
             input_ids, labels = input_ids[0], labels[0]
-
             # find assistnat token
             target_start = torch.where(labels == 78191)[0][0]
 
             prompt = input_ids[:target_start+3]
+
+            breakpoint()
 
             target = input_ids[target_start+3:-2]
 

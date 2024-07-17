@@ -415,6 +415,9 @@ class TikTokenTokenizer(Tokenizer):
                 # find second all positions of -> token 1492
                 # fast find all 1492 in tokenized_message
                 all_sep_positions = [i for i, x in enumerate(tokenized_message) if x == 1492]
+                if len(all_sep_positions) == 0:
+                    mask = mask + ([message.masked] * len(tokenized_message))
+                    continue
                 # find all ]]
                 all_close_positions = [i for i, x in enumerate(tokenized_message) if x == 5163 or x == 14623]
                 mask_for_system = [True] * len(tokenized_message)

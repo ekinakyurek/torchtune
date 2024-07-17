@@ -20,7 +20,7 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
+  path: /raid/lingo/models/Meta-Llama-3-8B-Instruct/original/tokenizer.model
 
 # Model Arguments
 model:
@@ -32,21 +32,28 @@ model:
   lora_alpha: 16
 
 checkpointer:
-  _component_: torchtune.utils.FullModelMetaCheckpointer
-  checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/original/
+  _component_: torchtune.utils.FullModelHFCheckpointer
+  checkpoint_dir: /raid/lingo/akyurek/git/arc/weights/hf_model_last/
   checkpoint_files: [
-    consolidated.00.pth
+    pytorch_model-0001-of-0004.bin,
+    pytorch_model-0002-of-0004.bin,
+    pytorch_model-0003-of-0004.bin,
+    pytorch_model-0004-of-0004.bin,
   ]
-  recipe_checkpoint: null
-  output_dir: /tmp/Meta-Llama-3-8B-Instruct/
+  recipe_checkpoint: # recipe_state.pt
+  output_dir: /raid/lingo/akyurek/git/arc/experiments/lora/model_weights/
   model_type: LLAMA3
-resume_from_checkpoint: False
+resume_from_checkpoint: False #True
 
 # Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.alpaca_cleaned_dataset
-seed: null
+  _component_: torchtune.datasets.arc_dataset
+  source: /raid/lingo/akyurek/git/arc/data/tasks/all_in_N40_rand_transformation_black_all
+  train_on_input: False
+  unmask_outputs: True # we'll get loss from all outputs after the first demonstration, very hacky, tokenizer & formatting specific implementation be careful
+seed: 57
 shuffle: True
+
 batch_size: 2
 
 # Optimizer and Scheduler
@@ -67,7 +74,7 @@ max_steps_per_epoch: null
 gradient_accumulation_steps: 32
 
 # Logging
-output_dir: /tmp/lora_finetune_output
+output_dir: /raid/lingo/akyurek/git/arc/experiments/lora/
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
