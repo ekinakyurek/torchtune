@@ -31,6 +31,7 @@ from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils import DummyProfiler, PROFILER_KEY
 
 from tqdm import tqdm
+import ipdb
 
 log = utils.get_logger("DEBUG")
 
@@ -194,7 +195,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 "Are you sure you passed in the right recipe checkpoint?"
             ) from e
 
-    def setup(self, cfg: DictConfig) -> None:
+    def setup(self, cfg: DictConfig, model = None, adapter = None) -> None:
         """
         Setup the recipe state. This includes recipe state (if resume_from_checkpoint is True),
         model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
@@ -205,22 +206,43 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._metric_logger.log_config(cfg)
 
         self._model_compile = cfg.compile
-        checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
-        self._model = self._setup_model(
-            cfg_model=cfg.model,
-            enable_activation_checkpointing=cfg.enable_activation_checkpointing,
-            compile_model=cfg.compile,
-            base_model_state_dict=checkpoint_dict[utils.MODEL_KEY],
-            lora_weights_state_dict=(
-                checkpoint_dict[utils.ADAPTER_KEY]
-                if self._resume_from_checkpoint
-                else None
-            ),
-        )
+        if model is None:
 
-        self._tokenizer = config.instantiate(cfg.tokenizer)
-        log.info("Tokenizer is initialized from file.")
+            checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
+
+            self._model = self._setup_model(
+                cfg_model=cfg.model,
+                enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+                compile_model=cfg.compile,
+                base_model_state_dict=checkpoint_dict[utils.MODEL_KEY],
+                lora_weights_state_dict=(
+                    checkpoint_dict[utils.ADAPTER_KEY]
+                    if self._resume_from_checkpoint
+                    else None
+                ),
+            )
+
+            self._tokenizer = config.instantiate(cfg.tokenizer)
+            log.info("Tokenizer is initialized from file.")
+        else:
+            # set grad to None for all parameters
+            for param in model.parameters():
+                param.grad = None
+
+            lora_parameters = adapter #get_adapter_params(model)
+            for name, param in model.named_parameters():
+                if name in lora_parameters:
+                    # copy
+                    param.data.copy_(lora_parameters[name].data)
+                    param.grad = None
+
+
+            self._model = model
+
+            checkpoint_dict = {}
+
+
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
@@ -539,6 +561,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         t0 = time.perf_counter()
         running_loss = 0
         num_tokens = 0
+        self._optimizer.zero_grad(set_to_none=True)
 
         with self._profiler as prof:
             # self.epochs_run should be non-zero when we're resuming from a checkpoint
@@ -630,7 +653,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     prof.step()
 
                 self.epochs_run += 1
-                self.save_checkpoint(epoch=curr_epoch)
+                # self.save_checkpoint(epoch=curr_epoch)
 
     def cleanup(self) -> None:
         self._metric_logger.close()
