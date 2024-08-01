@@ -199,6 +199,7 @@ class Llama3Tokenizer(ModelTokenizer):
         Returns:
             List[int]: The list of token ids.
         """
+
         if chat_format and tokenize_header:
             tokenized_header = (
                 [self.start_header_id]
@@ -208,8 +209,9 @@ class Llama3Tokenizer(ModelTokenizer):
             )
         else:
             tokenized_header = []
+
         tokenized_body = self.encode(
-            message.content.strip(), add_bos=False, add_eos=False
+            message.text_content.strip(), add_bos=False, add_eos=False
         )
         if chat_format:
             if message.ipython:
@@ -247,15 +249,17 @@ class Llama3Tokenizer(ModelTokenizer):
         # bos and eos are always masked
         mask = [True]
         if not chat_format:
-            messages[0].content = "".join([message.content for message in messages])
+            messages[0].content = "".join([message.text_content for message in messages])
             messages = messages[:1]
 
         for message in messages:
             tokenized_message = self.tokenize_message(
                 message, tokenize_header=tokenize_header, chat_format=chat_format
             )
+
             tokens = tokens + tokenized_message
-            if unmask_outputs and message.role == "system" and "code" not in message.content:
+
+            if unmask_outputs and message.role == "system" and "code" not in message.text_content:
                 # we want to mask outputs after first example in the sequence
                 # find second all positions of -> token 1492
                 # fast find all 1492 in tokenized_message
@@ -263,8 +267,8 @@ class Llama3Tokenizer(ModelTokenizer):
                 # find all ]]
                 all_close_positions = [i for i, x in enumerate(tokenized_message) if x == 5163 or x == 14623]
                 mask_for_system = [True] * len(tokenized_message)
-                count_step = 1 if (len(all_close_positions) / len(all_sep_positions)) >= 4 else 0
                 if len(all_sep_positions) > 1:
+                    count_step = 1 if (len(all_close_positions) / len(all_sep_positions)) >= 4 else 0
                     for sep_position in all_sep_positions[1:]:
                         # find the next close bracket
                         close_position = [x for x in all_close_positions if x > sep_position][count_step]
@@ -281,4 +285,5 @@ class Llama3Tokenizer(ModelTokenizer):
         if max_seq_len:
             tokens = truncate(tokens, max_seq_len, self.eos_id)
             mask = truncate(mask, max_seq_len, True)
+
         return tokens, mask

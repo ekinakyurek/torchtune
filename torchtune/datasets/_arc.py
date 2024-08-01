@@ -6,7 +6,7 @@
 from typing import Optional
 from torchtune.data import ARCInstructTemplate, ChatFormat, ChatMLFormat, arc_to_messages
 from torchtune.datasets._chat import ChatDataset
-from torchtune.modules.tokenizers import Tokenizer
+from torchtune.modules.tokenizers import ModelTokenizer
 
 
 # def arc_dataset(
@@ -57,8 +57,8 @@ from torchtune.modules.tokenizers import Tokenizer
 
 
 def arc_dataset(
-    tokenizer: Tokenizer,
-    source: str = "/raid/lingo/akyurek/git/arc/data/tasks/w_color_N40_rand_transformation_black_all/",
+    tokenizer: ModelTokenizer,
+    source: str = "/raid/lingo/akyurek/git/arc/data/tasks/verifiers_N40_rand_transformation_black_all/",
     chat_format: Optional[ChatFormat] = None,
     train_on_input: bool = True,
     unmask_outputs: bool = False,
@@ -113,23 +113,25 @@ def arc_dataset(
 
 
 if __name__ == "__main__":
-    from torchtune.modules.tokenizers import TikTokenTokenizer, SentencePieceTokenizer
+    from torchtune.models.llama3 import llama3_tokenizer
     from torch.utils.data import DataLoader
 
-    tokenizer = TikTokenTokenizer("/data/cl/scratch/model_weights/Meta-Llama-3-8B-Instruct/original/tokenizer.model")
+    tokenizer = llama3_tokenizer("/raid/lingo//models/Meta-Llama-3-8B-Instruct/original/tokenizer.model")
     arc_ds = arc_dataset(tokenizer=tokenizer, is_chat_format_enabled=False, unmask_outputs=True)
-
-    print(tokenizer.decode(arc_ds[-1][0], truncate_at_eos=False))
-
-    tokenizer2 = SentencePieceTokenizer("/raid/lingo/models/gemma-2b-it/tokenizer.model")
-
-    arc_ds2 = arc_dataset(tokenizer=tokenizer2, is_chat_format_enabled=False, unmask_outputs=True)
-
-    print(tokenizer2.decode(arc_ds2[-1][0], truncate_at_eos=False))
-
 
     breakpoint()
 
-    for batch in DataLoader(arc_ds, batch_size=8):
-        print(f"Batch size: {len(batch)}")
-    print("Done!")
+    print(tokenizer.decode(arc_ds[-1][0], truncate_at_eos=False))
+
+    # tokenizer2 = SentencePieceTokenizer("/raid/lingo/models/gemma-2b-it/tokenizer.model")
+
+    # arc_ds2 = arc_dataset(tokenizer=tokenizer2, is_chat_format_enabled=False, unmask_outputs=True)
+
+    # print(tokenizer2.decode(arc_ds2[-1][0], truncate_at_eos=False))
+
+
+    # breakpoint()
+
+    # for batch in DataLoader(arc_ds, batch_size=8):
+    #     print(f"Batch size: {len(batch)}")
+    # print("Done!")

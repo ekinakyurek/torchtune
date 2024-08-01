@@ -109,7 +109,7 @@ class ChatDataset(Dataset):
             messages, max_seq_len=self.max_seq_len, unmask_outputs=self.unmask_outputs, chat_format=self.is_chat_format_enabled
         )
         # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
-        labels = list(np.where(mask, CROSS_ENTROPY_IGNORE_IDX, tokens))
+        labels = np.where(mask, CROSS_ENTROPY_IGNORE_IDX, tokens).tolist()
         assert len(tokens) == len(labels)
 
         return {"tokens": tokens, "labels": labels}
