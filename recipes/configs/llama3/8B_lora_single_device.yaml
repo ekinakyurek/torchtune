@@ -72,8 +72,8 @@ loss:
 # Training
 epochs: 3
 max_steps_per_epoch: null
-gradient_accumulation_steps: 1
-compile: True
+gradient_accumulation_steps: 16
+compile: False
 
 # Logging
 output_dir: /raid/lingo/akyurek/git/arc/experiments/lora/

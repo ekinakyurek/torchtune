@@ -204,6 +204,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         ckpt_dict = self.load_checkpoint(cfg.checkpointer)
 
+        # if self._is_rank_zero:
+        #     print(ckpt_dict['model'].keys())
+
         # ``_setup_model`` handles initialization and loading the state dict. This method
         # should be called before ``_setup_optimizer`` since transforming the optimizer
         # state dict requires the model
@@ -255,11 +258,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
 
-        # self._lr_scheduler = self._setup_lr_scheduler(
-        #     cfg_lr_scheduler=cfg.lr_scheduler,
-        #     num_training_steps=self.total_epochs * self._steps_per_epoch,
-        #     last_epoch=self.total_training_steps - 1,
-        # )
+        self._lr_scheduler = self._setup_lr_scheduler(
+            cfg_lr_scheduler=cfg.lr_scheduler,
+            num_training_steps=2 * self.total_epochs * self._steps_per_epoch, # do not get to zero
+            last_epoch=self.global_step - 1,
+        )
 
     def _setup_model(
         self,
@@ -293,7 +296,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             log.info(
                 f"Model instantiation took {time.perf_counter() - init_start:.2f} secs"
             )
-
             # Load both the model weights. This should happen only on Rank 0
             model.load_state_dict(model_state_dict)
 
@@ -558,7 +560,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
-                    # self._lr_scheduler.step()
+                    self._lr_scheduler.step()
 
                     # Update the number of steps when the weights are updated
                     self.global_step += 1

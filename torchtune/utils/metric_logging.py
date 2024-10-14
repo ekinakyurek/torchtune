@@ -188,12 +188,15 @@ class WandBLogger(MetricLoggerInterface):
         if self._wandb.run is None and self.rank == 0:
             # we check if wandb.init got called externally,
             run = self._wandb.init(
+                reinit=True,
                 project=project,
                 entity=entity,
                 group=group,
                 dir=self.log_dir,
                 **kwargs,
             )
+
+
 
         if self._wandb.run:
             self._wandb.run._label(repo="torchtune")

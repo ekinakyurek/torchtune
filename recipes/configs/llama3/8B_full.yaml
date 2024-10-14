@@ -26,7 +26,7 @@ tokenizer:
 # Dataset
 dataset:
   _component_: torchtune.datasets.arc_dataset
-  source: /raid/lingo/akyurek/git/arc/data/tasks/all_in_pm_fix_30
+  source: /raid/lingo/akyurek/git/arc/data/tasks/more_both_aug_fix_drops
   train_on_input: False
   unmask_outputs: True # we'll get loss from all outputs after the first demonstration, very hacky, tokenizer & formatting specific implementation be careful
 seed: 57
@@ -38,17 +38,25 @@ model:
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir: /raid/lingo/akyurek/git/arc/experiments/withcode_repr_v3/model_weights/
+  checkpoint_dir: /raid/lingo/akyurek/git/arc/experiments/fixed_aug_no_cc_train_on_input/model_weights/
   checkpoint_files: [
-    hf_model_0001_0.pt,
-    hf_model_0002_0.pt,
-    hf_model_0003_0.pt,
-    hf_model_0004_0.pt
+    hf_model_0001_1.pt,
+    hf_model_0002_1.pt,
+    hf_model_0003_1.pt,
+    hf_model_0004_1.pt,
+    # model-00001-of-00004.safetensors,
+    # model-00002-of-00004.safetensors,
+    # model-00003-of-00004.safetensors,
+    # model-00004-of-00004.safetensors,
+    # pytorch_model-0001-of-0004.bin,
+    # pytorch_model-0002-of-0004.bin,
+    # pytorch_model-0003-of-0004.bin,
+    # pytorch_model-0004-of-0004.bin,
   ]
-  recipe_checkpoint: recipe_state.pt
-  output_dir: /raid/lingo/akyurek/git/arc/experiments/withcode_repr_v3_continue_v2/model_weights/
+  recipe_checkpoint: # recipe_state.pt
+  output_dir: /raid/lingo/akyurek/git/arc/experiments/fixed_aug_no_cc_train_on_input_ct/model_weights/
   model_type: LLAMA3
-resume_from_checkpoint: True
+resume_from_checkpoint: False #True
 
 # Fine-tuning arguments
 batch_size: 2
@@ -59,9 +67,9 @@ optimizer:
   lr: 2e-5
   foreach: False
 
-# lr_scheduler:
-#   _component_: torchtune.modules.get_cosine_schedule_with_warmup
-#   num_warmup_steps: 100
+lr_scheduler:
+  _component_: torchtune.modules.get_cosine_schedule_with_warmup
+  num_warmup_steps: 2000
 
 loss:
   _component_: torch.nn.CrossEntropyLoss
@@ -81,8 +89,12 @@ dtype: bf16
 
 # Logging
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
-  log_dir: ${output_dir}
-output_dir: /raid/lingo/akyurek/git/arc/experiments/withcode_repr_v3_continue_v2/logs/
+  _component_: torchtune.utils.metric_logging.WandBLogger
+  project: ARCPT
+  entity: akyurek
+  job_type: PT
+  group: pretrain
+
+output_dir: /raid/lingo/akyurek/git/arc/experiments/fixed_aug_no_cc_train_on_input_ct/logs/
 log_every_n_steps: 1
 log_peak_memory_stats: False
