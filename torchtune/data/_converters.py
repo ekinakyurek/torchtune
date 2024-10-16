@@ -152,3 +152,23 @@ def get_openai_messages(
         message["masked"] = (message["role"] != "assistant") and (not train_on_input)
         messages.append(Message.from_dict(message))
     return messages
+
+
+def arc_to_messages(
+    sample: Mapping[str, Any], train_on_input: bool = False,
+) -> List[Message]:
+    """
+    Convert a chat sample adhering to the ARC format to the chat format.
+    """
+
+    input = sample["input"]
+    output = sample["output"]
+
+    messages = []
+
+    for message in input:
+        messages.append(Message(role=message["role"], content=message["content"], masked=(not train_on_input)))
+
+    messages.append(Message(role="assistant", content=output["content"], masked=False))
+
+    return messages

@@ -101,10 +101,12 @@ class SFTDataset(Dataset):
         message_transform: Transform,
         model_transform: Transform,
         filter_fn: Optional[Callable] = None,
+        unmask_outputs: bool = False,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._message_transform = message_transform
         self._model_transform = model_transform
+        self._unmask_outputs = unmask_outputs
 
         self._data = load_dataset(source, **load_dataset_kwargs)
         if filter_fn is not None:
@@ -122,7 +124,7 @@ class SFTDataset(Dataset):
         if "messages" in transformed_sample:
             validate_messages(transformed_sample["messages"])
 
-        tokenized_dict = self._model_transform(transformed_sample)
+        tokenized_dict = self._model_transform(transformed_sample, unmask_outputs=self._unmask_outputs)
 
         if not ("tokens" in tokenized_dict and "mask" in tokenized_dict):
             keys_str = ", ".join(tokenized_dict.keys())

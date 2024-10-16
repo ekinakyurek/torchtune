@@ -263,6 +263,7 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         messages: List[Message],
         *,
         add_end_tokens: bool = True,
+        unmask_outputs: bool = False,
     ) -> Tuple[List[int], List[bool]]:
         """
         Tokenize a list of messages into a list of token ids and masks.
@@ -310,7 +311,28 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
             )
 
             tokens = tokens + tokenized_message
-            mask = mask + ([message.masked] * len(tokenized_message))
+
+            if unmask_outputs and message.role == "system" and "code" not in message.text_content:
+                # we want to mask outputs after first example in the sequence
+                # find second all positions of -> token 1492
+                # fast find all 1492 in tokenized_message
+                all_sep_positions = [i for i, x in enumerate(tokenized_message) if x == 1492]
+                # find all ]]
+                all_close_positions = [i for i, x in enumerate(tokenized_message) if x == 5163 or x == 14623]
+                mask_for_system = [True] * len(tokenized_message)
+                if len(all_sep_positions) > 1:
+                    count_step = 1 if (len(all_close_positions) / len(all_sep_positions)) >= 4 else 0
+                    for sep_position in all_sep_positions[1:]:
+                        # find the next close bracket
+                        close_position = [x for x in all_close_positions if x > sep_position][count_step]
+                        mask_for_system[sep_position+1:close_position+1] = [False] * (close_position - sep_position)
+                # mask positions 2 - 3
+                mask = mask + mask_for_system
+            else:
+                mask = mask + ([message.masked] * len(tokenized_message))
+
+
+
             if self.max_seq_len and len(tokens) >= self.max_seq_len:
                 break
 
@@ -327,7 +349,7 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         return tokens, mask
 
     def __call__(
-        self, sample: Mapping[str, Any], inference: bool = False
+        self, sample: Mapping[str, Any], inference: bool = False, unmask_outputs: bool = False
     ) -> Mapping[str, Any]:
         """
         Apply ``tokenize_messages`` to the "messages" field in the sample.
@@ -342,7 +364,7 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
                 and the "messages" field removed.
         """
         messages = sample.pop("messages")
-        tokens, mask = self.tokenize_messages(messages, add_end_tokens=not inference)
+        tokens, mask = self.tokenize_messages(messages, add_end_tokens=not inference, unmask_outputs=unmask_outputs)
         sample["tokens"] = tokens
         sample["mask"] = mask
         return sample

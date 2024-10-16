@@ -688,3 +688,40 @@ class AlpacaToMessages(Transform):
             ),
         ]
         return {"messages": messages}
+
+
+
+
+class ARCToMessages(Transform):
+    """
+    Args:
+        train_on_input (bool): Whether the model is trained on the user prompt or not.
+            Default is True.
+        column_map (Optional[Dict[str, str]]): a mapping to change the expected "instruction", "input",
+            and "output" column names to the actual column names in the dataset. Default is None,
+            keeping the default column names.
+    """
+
+    def __init__(
+        self, train_on_input: bool = True, column_map: Optional[Dict[str, str]] = None
+    ):
+        self.train_on_input = train_on_input
+        self.column_map = column_map
+        self.template = None
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        column_map = self.column_map or {}
+        key_input = column_map.get("input", "input")
+        key_output = column_map.get("output", "output")
+
+        input = sample["input"]
+        output = sample["output"]
+
+        messages = []
+
+        for message in input:
+            messages.append(Message(role=message["role"], content=message["content"], masked=(not self.train_on_input)))
+
+        messages.append(Message(role="assistant", content=output["content"], masked=False))
+
+        return {"messages": messages}

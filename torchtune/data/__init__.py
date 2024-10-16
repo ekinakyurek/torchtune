@@ -14,9 +14,10 @@ from torchtune.data._collate import (
     padded_collate_tiled_images_and_mask,
 )
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.data._converters import get_openai_messages, get_sharegpt_messages
+from torchtune.data._converters import get_openai_messages, get_sharegpt_messages, arc_to_messages
 from torchtune.data._instruct_templates import InstructTemplate
 from torchtune.data._messages import (
+    ARCToMessages,
     AlpacaToMessages,
     ChosenRejectedToMessages,
     InputOutputToMessages,
@@ -45,6 +46,7 @@ __all__ = [
     "OpenAIToMessages",
     "ShareGPTToMessages",
     "AlpacaToMessages",
+    "ARCToMessages",
     "truncate",
     "Message",
     "validate_messages",
@@ -58,6 +60,7 @@ __all__ = [
     "ChatMLTemplate",
     "get_openai_messages",
     "get_sharegpt_messages",
+    "arc_to_messages",
     "padded_collate_sft",
     "padded_collate_dpo",
     "left_pad_sequence",
