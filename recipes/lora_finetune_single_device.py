@@ -222,7 +222,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 "Are you sure you passed in the right recipe checkpoint?"
             ) from e
 
-    def setup(self, cfg: DictConfig) -> None:
+    def setup(self, cfg: DictConfig, model=None, adapter=None) -> None:
         """
         Setup the recipe state. This includes recipe state (if resume_from_checkpoint is True),
         model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
@@ -239,22 +239,40 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # hook based on the config.
         common_utils._use_low_cpu_ram = cfg.get("low_cpu_ram", False)
 
-        # set up model
-        self._model = self._setup_model(
-            cfg_model=cfg.model,
-            enable_activation_checkpointing=cfg.enable_activation_checkpointing,
-            enable_activation_offloading=self._enable_activation_offloading,
-            compile_model=cfg.compile,
-            base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
-            lora_weights_state_dict=(
-                checkpoint_dict[training.ADAPTER_KEY]
-                if self._resume_from_checkpoint
-                else None
-            ),
-        )
+        if model is None:
+            # set up model
+            self._model = self._setup_model(
+                cfg_model=cfg.model,
+                enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+                enable_activation_offloading=self._enable_activation_offloading,
+                compile_model=cfg.compile,
+                base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
+                lora_weights_state_dict=(
+                    checkpoint_dict[training.ADAPTER_KEY]
+                    if self._resume_from_checkpoint
+                    else None
+                ),
+            )
 
-        self._tokenizer = config.instantiate(cfg.tokenizer)
-        log.info("Tokenizer is initialized from file.")
+            self._tokenizer = config.instantiate(cfg.tokenizer)
+            log.info("Tokenizer is initialized from file.")
+        else:
+            # set grad to None for all parameters
+            for param in model.parameters():
+                param.grad = None
+
+            lora_parameters = adapter #get_adapter_params(model)
+            for name, param in model.named_parameters():
+                if name in lora_parameters:
+                    # copy
+                    param.data.copy_(lora_parameters[name].data)
+                    param.grad = None
+
+
+            self._model = model
+
+            checkpoint_dict = {}
+
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
@@ -653,6 +671,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         t0 = time.perf_counter()
         running_loss = 0
         num_tokens = 0
+        self._optimizer.zero_grad(set_to_none=True)
 
         with self._profiler as prof:
             # self.epochs_run should be non-zero when we're resuming from a checkpoint
@@ -749,14 +768,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     prof.step()
 
                 self.epochs_run += 1
-                start_save_checkpoint = time.perf_counter()
-                log.info("Starting checkpoint save...")
-                self.save_checkpoint(epoch=curr_epoch)
-                log.info(
-                    "Checkpoint saved in {:.2f} seconds.".format(
-                        time.perf_counter() - start_save_checkpoint
-                    )
-                )
+                # start_save_checkpoint = time.perf_counter()
+                # log.info("Starting checkpoint save...")
+                # self.save_checkpoint(epoch=curr_epoch)
+                # log.info(
+                #     "Checkpoint saved in {:.2f} seconds.".format(
+                #         time.perf_counter() - start_save_checkpoint
+                #     )
+                # )
 
     def cleanup(self) -> None:
         self._metric_logger.close()

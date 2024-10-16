@@ -267,6 +267,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
 
+        self._lr_scheduler = self._setup_lr_scheduler(
+             cfg_lr_scheduler=cfg.lr_scheduler,
+             num_training_steps=2 * self.total_epochs * self._steps_per_epoch, # do not get to zero
+             last_epoch=self.global_step - 1,
+         )
+
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
@@ -470,6 +476,22 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             log.info("Optimizer is initialized.")
         return optimizer
 
+    def _setup_lr_scheduler(
+         self,
+         cfg_lr_scheduler: DictConfig,
+         num_training_steps: int,
+         last_epoch: int,
+     ) -> Optimizer:
+         lr_scheduler = config.instantiate(
+             cfg_lr_scheduler,
+             self._optimizer,
+             num_training_steps=num_training_steps,
+             last_epoch=last_epoch,
+         )
+         if self._is_rank_zero:
+             log.info("Learning rate scheduler is initialized.")
+         return lr_scheduler
+
     def _setup_data(
         self,
         cfg_dataset: DictConfig,
@@ -663,6 +685,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         )
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
+                    self._lr_scheduler.step()
 
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
@@ -699,6 +722,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     running_loss = 0
                     num_tokens = 0
                     t0 = time.perf_counter()
+
+                    if self.global_step % 1000 == 0:
+                        self.save_checkpoint(epoch=curr_epoch)
 
                     # Stop tracking CUDA memory now that active steps are complete
                     if (
