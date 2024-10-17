@@ -39,6 +39,9 @@ RESERVED_TOKENS = {
 
 LLAMA3_SPECIAL_TOKENS = {**SPECIAL_TOKENS, **RESERVED_TOKENS}
 
+ARC_END_TOKENS = (2, 5062)
+# ARC_END_TOKENS = (5163, 14623)
+ARC_SEP_TOKENS = (1492,)
 
 class Llama3Tokenizer(ModelTokenizer, Transform):
     """
@@ -316,9 +319,12 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
                 # we want to mask outputs after first example in the sequence
                 # find second all positions of -> token 1492
                 # fast find all 1492 in tokenized_message
-                all_sep_positions = [i for i, x in enumerate(tokenized_message) if x == 1492]
+                all_sep_positions = [i for i, x in enumerate(tokenized_message) if x in ARC_SEP_TOKENS]
                 # find all ]]
-                all_close_positions = [i for i, x in enumerate(tokenized_message) if x == 5163 or x == 14623]
+
+                # all_close_positions = [i for i, x in enumerate(tokenized_message) if x == 5163 or x == 14623]
+                all_close_positions = [i for i, x in enumerate(tokenized_message) if x in ARC_END_TOKENS]
+
                 mask_for_system = [True] * len(tokenized_message)
                 if len(all_sep_positions) > 1:
                     count_step = 1 if (len(all_close_positions) / len(all_sep_positions)) >= 4 else 0

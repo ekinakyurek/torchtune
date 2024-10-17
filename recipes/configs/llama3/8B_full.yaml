@@ -87,7 +87,7 @@ dtype: bf16
 # Logging
 # Logging
 metric_logger:
-  _component_: torchtune.utils.metric_logging.WandBLogger
+  _component_: torchtune.training.metric_logging.WandBLogger
   project: ARCPT
   entity: akyurek
   job_type: PT

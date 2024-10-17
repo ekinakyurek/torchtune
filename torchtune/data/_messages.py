@@ -696,14 +696,14 @@ class ARCToMessages(Transform):
     """
     Args:
         train_on_input (bool): Whether the model is trained on the user prompt or not.
-            Default is True.
+            Default is False.
         column_map (Optional[Dict[str, str]]): a mapping to change the expected "instruction", "input",
             and "output" column names to the actual column names in the dataset. Default is None,
             keeping the default column names.
     """
 
     def __init__(
-        self, train_on_input: bool = True, column_map: Optional[Dict[str, str]] = None
+        self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None
     ):
         self.train_on_input = train_on_input
         self.column_map = column_map
