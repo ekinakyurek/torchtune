@@ -7,9 +7,11 @@
 from ._llava_instruct import llava_instruct_dataset
 from ._multimodal import multimodal_chat_dataset
 from ._the_cauldron import the_cauldron_dataset
+from ._arc_multimodal import arc_multimodal_dataset
 
 __all__ = [
     "the_cauldron_dataset",
     "llava_instruct_dataset",
     "multimodal_chat_dataset",
+    "arc_multimodal_dataset",
 ]

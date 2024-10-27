@@ -692,6 +692,55 @@ class AlpacaToMessages(Transform):
 
 
 
+class ARCMultiModalToMessages(Transform):
+    """
+    Args:
+        train_on_input (bool): Whether the model is trained on the user prompt or not.
+            Default is False.
+        column_map (Optional[Dict[str, str]]): a mapping to change the expected "instruction", "input",
+            and "output" column names to the actual column names in the dataset. Default is None,
+            keeping the default column names.
+    """
+
+    def __init__(
+        self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None, image_factor: int = 4,
+    ):
+        self.train_on_input = train_on_input
+        self.column_map = column_map
+        self.template = None
+        self.image_factor = 4
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        column_map = self.column_map or {}
+        key_input = column_map.get("input", "input")
+        key_output = column_map.get("output", "output")
+
+        input = sample["input"]
+        output = sample["output"]
+
+        messages = []
+
+        for message in input + [output]:
+            new_content = []
+            for content in message["content"]:
+                if content["type"] == "text":
+                    new_content.append({"type": "text", "content": content["text"]})
+                elif content["type"] == "image_url":
+                    image_numpy = content["image_url"]["url"]
+                    # increase resolution 4x4 times
+                    image_numpy = np.repeat(image_numpy, self.image_factor, axis=0)
+                    image_numpy = np.repeat(image_numpy, self.image_factor, axis=1)
+                    image = Image.fromarray(image_numpy)
+                    new_content.append({"type": "image", "content": image})
+            new_message = Message(role=message["role"], content=new_content, masked=not (message["role"] == "assistant" or self.train_on_input))
+            messages.append(new_message)
+
+
+        # messages.append(Message(role="assistant", content=output["content"], masked=False))
+        # breakpoint()
+        return {"messages": messages}
+
+
 class ARCToMessages(Transform):
     """
     Args:
@@ -720,7 +769,7 @@ class ARCToMessages(Transform):
         messages = []
 
         for message in input:
-            messages.append(Message(role=message["role"], content=message["content"], masked=(not self.train_on_input)))
+            messages.append(Message(role=message["role"], content=message["content"], masked=not self.train_on_input))
 
         messages.append(Message(role="assistant", content=output["content"], masked=False))
 

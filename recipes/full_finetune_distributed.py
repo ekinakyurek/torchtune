@@ -649,6 +649,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     torch.cuda.memory._record_memory_history()
 
                 utils.batch_to_device(batch, self._device)
+
                 num_tokens += batch["tokens"].numel()
 
                 # Shape [b, s], needed for the loss not the model

@@ -25,6 +25,7 @@ from torchtune.data._messages import (
     OpenAIToMessages,
     Role,
     ShareGPTToMessages,
+    ARCMultiModalToMessages,
     validate_messages,
 )
 from torchtune.data._prompt_templates import (
@@ -47,6 +48,7 @@ __all__ = [
     "ShareGPTToMessages",
     "AlpacaToMessages",
     "ARCToMessages",
+    "ARCMultiModalToMessages",
     "truncate",
     "Message",
     "validate_messages",
