@@ -39,9 +39,20 @@ RESERVED_TOKENS = {
 
 LLAMA3_SPECIAL_TOKENS = {**SPECIAL_TOKENS, **RESERVED_TOKENS}
 
-ARC_END_TOKENS = (2, 5062)
+# For previous version
 # ARC_END_TOKENS = (5163, 14623)
+
+# For current version
+ARC_END_TOKENS = (2, 5062)
 ARC_SEP_TOKENS = (1492,)
+ARC_FEWSHOT_ROLE = "system"
+print("UNMASK TOKENS IN CURRENT MODE")
+
+# For barc
+# ARC_SEP_TOKENS = (5207,)
+# ARC_END_TOKENS = (13617, 1432)
+# ARC_FEWSHOT_ROLE = "user"
+# print("UNMASK TOKENS IN BARC MODE")
 
 class Llama3Tokenizer(ModelTokenizer, Transform):
     """
@@ -315,7 +326,7 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
 
             tokens = tokens + tokenized_message
 
-            if unmask_outputs and message.role == "system" and "code" not in message.text_content:
+            if unmask_outputs and message.role == ARC_FEWSHOT_ROLE: # and "code" not in message.text_content:
                 # we want to mask outputs after first example in the sequence
                 # find second all positions of -> token 1492
                 # fast find all 1492 in tokenized_message
